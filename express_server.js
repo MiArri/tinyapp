@@ -11,6 +11,12 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+//new route handler for "/urls"
+app.get("/urls", (req, res) => {
+  const templateVars = { urls: urlDatabase };
+  res.render("urls_index", templateVars);
+});
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
