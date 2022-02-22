@@ -19,7 +19,17 @@
           <%= shortURL %>
         </a></p>
     </div>
-    <div class="card-footer text-muted"></div>
+    <div>
+      <h4>Edit</h4>
+      <form method="POST" action="/urls/<%= shortURL %>">
+        <label>New URL:</label>
+        <input name="newURL">
+        <button type="submit">Submit</button>
+      </form>
+    </div>
+    <div class="card-footer text-muted">
+
+    </div>
   </div>
   <!-- Bootstrap JS -->
   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
