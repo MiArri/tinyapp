@@ -21,6 +21,12 @@ app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
+//route to render urls_show.ejs template
+app.get("/urls/:shortURL", (req, res) => {
+  const templateVars = { shortURL: req.params.shortURL, longURL: req.params.longURL };
+  res.render("urls_show", templateVars);
+});
+
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
