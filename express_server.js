@@ -5,14 +5,13 @@ const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
-function generateRandomString() {
+const generateRandomString = function() {
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for ( var i = 0; i < characters.length; i++ ) {
-    result += characters.charAt(Math.floor(Math.random() * 6));
+  for (let i = 0; i < 6; i++ ) {
+    result += characters.charAt(Math.floor(Math.random() * 63));
   }
    return result;
-  }
 };
 
 const urlDatabase = {
@@ -45,16 +44,24 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 
-//route to render urls_show.ejs template
-app.get("/urls/:shortURL", (req, res) => {
-  const shortURL = req.params.shortURL
-  const longURL = urlDatabase[shortURL]
-  res.render("urls_show", { shortURL, longURL });
+app.post("/urls", (req, res) => {
+  const longUrl = req.body.longURL
+  const shortURL = generateRandomString();
+  urlDatabase[shortURL] = longUrl;
+  res.redirect(`/urls/${shortURL}`);
 });
 
-app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+app.get("/u/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  const longURL = urlDatabase[shortURL];
+  res.redirect(longURL);
+});
+
+//route to render urls_show.ejs template
+app.get("/urls/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  const longURL = urlDatabase[shortURL];
+  res.render("urls_show", { shortURL, longURL });
 });
 
 
