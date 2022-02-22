@@ -54,14 +54,23 @@ app.post("/urls", (req, res) => {
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL];
-  res.redirect(longURL);
+  if(!longURL) {
+    res.render("not_found", { shortURL });
+  } else {
+    res.redirect(longURL);
+  }
 });
 
 //route to render urls_show.ejs template
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL];
-  res.render("urls_show", { shortURL, longURL });
+
+  if(!longURL) {
+    res.render("not_found", { shortURL });
+  } else {
+    res.render("urls_show", { shortURL, longURL });
+  }
 });
 
 
