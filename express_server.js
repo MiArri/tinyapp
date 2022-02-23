@@ -30,6 +30,13 @@ app.post("/login", (req, res) => {
   res.redirect('/urls');
 });
 
+//clear cookies
+app.post("/logout", (req, res) => {
+  const username = req.body.username;
+  res.cookie('username', username);
+  res.clearCookie('username', { path: '/logout' })
+  res.redirect('/urls');
+});
 
 //home page
 app.get("/", (req, res) => {
