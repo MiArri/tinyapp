@@ -1,10 +1,14 @@
 const express = require("express");
+const bodyParser = require("body-parser");
+const cookieParser = require('cookie-parser');
+
 const app = express();
 const PORT = 8080; // default port 8080
 //using ejs template
 app.set("view engine", "ejs");
-const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieParser());
+
 const generateRandomString = function() {
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -19,6 +23,14 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+//log in and cookie
+app.post("/login", (req, res) => {
+  const username = req.body.username;
+  res.cookie('username', username);
+  res.redirect('/urls');
+});
+
+
 //home page
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -32,13 +44,10 @@ app.get("/urls.json", (req, res) => {
 
 //new route handler for "/urls"
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = {
+    urls: urlDatabase,
+    username: req.cookies["username"] };
   res.render("urls_index", templateVars);
-});
-
-//hello page
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
 //get a new URL
@@ -81,7 +90,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
   delete urlDatabase[shortURL];
   res.redirect("/urls");
-})
+});
 
 //update the shortened url
 app.post("/urls/:id", (req, res) => {
@@ -89,7 +98,7 @@ app.post("/urls/:id", (req, res) => {
   const newURL = req.body.newURL;
   urlDatabase[URLId] = newURL;
   res.redirect("/urls");
-})
+});
 
 //server listens
 app.listen(PORT, () => {
