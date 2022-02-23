@@ -23,6 +23,43 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  "userRandomID": {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk"
+  }
+}
+
+const userDatabase = {
+  "mi@gmail.com": user1,
+};
+
+//register
+app.get("/register", (req, res) => {
+  // let email = userDatabase[req.cookie.email];
+  return res.render("register");
+});
+ app.post("/register", (req, res) => {
+  const {email, password} = req.body;
+  if (!email || !password){
+    return res.redirect("/register")
+  }
+  if (userDatabase[email]){
+    return res.redirect("/register")
+  }
+  const newUser = {email, password};
+  userDatabase [email] = newUser;
+  res.cookie("email", email);
+  return res.redirect("/");
+ });
+
+
 //log in and cookie
 app.post("/login", (req, res) => {
   const username = req.body.username;
@@ -37,6 +74,7 @@ app.post("/logout", (req, res) => {
   res.clearCookie('username', { path: '/logout' })
   res.redirect('/urls');
 });
+
 
 //home page
 app.get("/", (req, res) => {
@@ -69,6 +107,7 @@ app.post("/urls", (req, res) => {
   urlDatabase[shortURL] = longUrl;
   res.redirect(`/urls/${shortURL}`);
 });
+
 //redirect to the long URL if a short one is not found
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
