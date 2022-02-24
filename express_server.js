@@ -9,6 +9,10 @@ const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
+// app.use(cookieSession({
+//   name: 'session',
+//   keys: ['user_id']
+// }));
 
 const generateRandomString = function() {
   let result = '';
@@ -20,8 +24,14 @@ const generateRandomString = function() {
 };
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b2xVn2: {
+    longURL: "http://www.lighthouselabs.ca",
+    userID: "aJ48lW"
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW"
+  }
 };
 
 const users = {
@@ -56,26 +66,19 @@ app.get("/register", (req, res) => {
 });
 
 //reister and add a new user to global users object
- app.post("/register", (req, res) => {
+app.post("/register", (req, res) => {
   const { email, password} = req.body;
-  const id = generateRandomString();
-  const user = emailLookup(email, users);
 
-  if (!email || !password) {
-    return res.redirect("/register")
-  };
   if (email === "" || password === "") {
-    return res.status(400);
-  };
-  if (!emailLookup(email, users)) {
-    return res.status(400);
-  };
-  if (user.password !== password) {
-    return res.status(403);
-  };
-  if (user.email !== email) {
-    return res.status(403);
-  };
+    res.status(400).send();
+    return;
+  }
+  if (emailLookup(email, users)) {
+    res.status(400).send();
+    return;
+  }
+
+  const id = generateRandomString();
   const newUser = {id, email, password};
   users[id] = newUser;
   res.cookie("user_id", id);
@@ -96,13 +99,15 @@ app.post("/login", (req, res) => {
   const { email, password } = req.body;
   const user = emailLookup(email, users);
   if (!user) {
-    res.redirect('/register');
-    return res.status(403);
+    return res
+      .status(403)
+      .render("register", { user: {} });
   }
 
   if (user.password !== password) {
-    res.redirect('/login');
-    return res.status(403);
+    return res
+      .status(403)
+      .render("login", { user: {} });
   }
 
   res.cookie("user_id", user.id);
@@ -141,47 +146,62 @@ app.get("/urls/new", (req, res) => {
   const templateVars = {
     user: getCurrentUser(req)
   };
+  if (!templateVars.user) {
+    res.redirect('/login');
+    return
+  }
   res.render("urls_new", templateVars);
 });
 
 //generate a short URL
 app.post("/urls", (req, res) => {
-  const longUrl = req.body.longURL
+  const user = getCurrentUser(req)
+  if (!user) {
+    return res
+      .status(403)
+      .render("login", { user: {} });
+  }
+
+  const longURL = req.body.longURL
   const shortURL = generateRandomString();
-  urlDatabase[shortURL] = longUrl;
+  urlDatabase[shortURL] = {
+    userId: user.id,
+    longURL
+  };
   res.redirect(`/urls/${shortURL}`);
 });
 
 //redirect to the long URL if a short one is not found
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
-  const longURL = urlDatabase[shortURL];
-  if(!longURL) {
-    res.render("not_found", { shortURL });
+
+  if (!urlDatabase[shortURL]) {
+    res.render("not_found", {
+      shortURL,
+      user: getCurrentUser(req)
+    });
   } else {
-    res.redirect(longURL);
+    res.redirect(urlDatabase[shortURL].longURL);
   }
 });
 
 //route to render urls_show.ejs template
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
-  const longURL = urlDatabase[shortURL];
-  const templateVars = {
-    user: getCurrentUser(req)
-  };
+  const user = getCurrentUser(req);
 
-  if(!longURL) {
-    res.render("not_found", { shortURL }, templateVars);
+  if (!urlDatabase[shortURL]) {
+    res.render("not_found", { shortURL, user });
   } else {
-    res.render("urls_show", { shortURL, longURL }, templateVars);
+    const longURL = urlDatabase[shortURL].longURL;
+    res.render("urls_show", { shortURL, longURL, user });
   }
 });
 
 //Delete a URL
 app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
-  delete urlDatabase[shortURL];
+  delete urlDatabase[shortURL].longURL;
   res.redirect("/urls");
 });
 
