@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
+const { emailLookup } = require('./helpers/helpers');
 
 const app = express();
 const PORT = 8080; // default port 8080
@@ -36,10 +37,19 @@ const users = {
   }
 };
 
+const getCurrentUser = (req) => {
+  const userId = req.cookies["user_id"];
+  if (users[userId]) {
+    return users[userId];
+  }
+
+  return {};
+}
+
 //register
 app.get("/register", (req, res) => {
   const templateVars = {
-    user: {}
+    user: getCurrentUser(req)
   };
 
   return res.render("register", templateVars);
@@ -52,25 +62,49 @@ app.get("/register", (req, res) => {
   if (!email || !password) {
     return res.redirect("/register")
   };
-  if (Object.values(users).find(x => x.email === email)) {
-    return res.redirect("/register")
+  if (email === "" || password === "") {
+    res.status(400);
+  }
+  if (!emailLookup(email, users)) {
+    res.status(400);
   };
+
   const newUser = {id, email, password};
   users[id] = newUser;
   res.cookie("user_id", id);
+
   return res.redirect("/urls");
  });
 
+//login
+app.get("/login", (req, res) => {
+  const templateVars = {
+    user: getCurrentUser(req)
+  };
+  return res.render("login", templateVars);
+});
 
 //log in and cookie
 app.post("/login", (req, res) => {
-  const username = req.body.username;
+  const { email, password } = req.body;
+  const user = emailLookup(email, users)
+  if (!user) {
+    res.redirect('/register');
+    return;
+  }
+
+  if (user.password !== password) {
+    res.redirect('/login');
+    return;
+  }
+
+  res.cookie("user_id", user.id);
   res.redirect('/urls');
 });
 
-//clear cookies
+//clear cookies and log out
 app.post("/logout", (req, res) => {
-  res.clearCookie('user_id')
+  res.clearCookie("user_id");
   res.redirect('/urls');
 });
 
@@ -88,17 +122,18 @@ app.get("/urls.json", (req, res) => {
 
 //new route handler for "/urls"
 app.get("/urls", (req, res) => {
-  const userId = req.cookies["user_id"];
-  const user = users[userId];
   const templateVars = {
     urls: urlDatabase,
-    user
+    user: getCurrentUser(req)
   };
   res.render("urls_index", templateVars);
 });
 
 //get a new URL
 app.get("/urls/new", (req, res) => {
+  const templateVars = {
+    user: getCurrentUser(req)
+  };
   res.render("urls_new");
 });
 
@@ -125,11 +160,14 @@ app.get("/u/:shortURL", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL];
+  const templateVars = {
+    user: getCurrentUser(req)
+  };
 
   if(!longURL) {
-    res.render("not_found", { shortURL });
+    res.render("not_found", { shortURL }, templateVars);
   } else {
-    res.render("urls_show", { shortURL, longURL });
+    res.render("urls_show", { shortURL, longURL }, templateVars);
   }
 });
 
