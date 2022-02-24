@@ -46,6 +46,16 @@ const getCurrentUser = (req) => {
   return {};
 }
 
+const urlsForUser = function (id,req) {
+  const userId = req.cookies["user_id"];
+  const user = users[shortURL]
+  if ( !== getCurrentUser (req)){
+    return res.redirect('/register');
+  } else {
+    return res.redirect('/urls');
+  }
+};
+
 //register
 app.get("/register", (req, res) => {
   const templateVars = {
@@ -146,10 +156,21 @@ app.get("/urls/new", (req, res) => {
 
 //generate a short URL
 app.post("/urls", (req, res) => {
-  const longUrl = req.body.longURL
-  const shortURL = generateRandomString();
-  urlDatabase[shortURL] = longUrl;
-  res.redirect(`/urls/${shortURL}`);
+  const { email, password } = req.body;
+  const user = emailLookup(email, users);
+  urlsForUser(user);
+  if (!user) {
+    res.redirect('/login');
+    return res.status(403);
+  } else if (user !== getCurrentUser(req)){
+    res.redirect('/login');
+    return res.status(403);
+  } else {
+    const longUrl = req.body.longURL
+    const shortURL = generateRandomString();
+    urlDatabase[shortURL] = longUrl;
+    res.redirect(`/urls/${shortURL}`);
+  }
 });
 
 //redirect to the long URL if a short one is not found
