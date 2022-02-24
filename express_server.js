@@ -55,20 +55,27 @@ app.get("/register", (req, res) => {
   return res.render("register", templateVars);
 });
 
-//add a new user to global users object
+//reister and add a new user to global users object
  app.post("/register", (req, res) => {
   const { email, password} = req.body;
   const id = generateRandomString();
+  const user = emailLookup(email, users);
+
   if (!email || !password) {
     return res.redirect("/register")
   };
   if (email === "" || password === "") {
-    res.status(400);
-  }
-  if (!emailLookup(email, users)) {
-    res.status(400);
+    return res.status(400);
   };
-
+  if (!emailLookup(email, users)) {
+    return res.status(400);
+  };
+  if (user.password !== password) {
+    return res.status(403);
+  };
+  if (user.email !== email) {
+    return res.status(403);
+  };
   const newUser = {id, email, password};
   users[id] = newUser;
   res.cookie("user_id", id);
@@ -84,18 +91,18 @@ app.get("/login", (req, res) => {
   return res.render("login", templateVars);
 });
 
-//log in and cookie
+//login and cookie
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
-  const user = emailLookup(email, users)
+  const user = emailLookup(email, users);
   if (!user) {
     res.redirect('/register');
-    return;
+    return res.status(403);
   }
 
   if (user.password !== password) {
     res.redirect('/login');
-    return;
+    return res.status(403);
   }
 
   res.cookie("user_id", user.id);
@@ -134,7 +141,7 @@ app.get("/urls/new", (req, res) => {
   const templateVars = {
     user: getCurrentUser(req)
   };
-  res.render("urls_new");
+  res.render("urls_new", templateVars);
 });
 
 //generate a short URL
