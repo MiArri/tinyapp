@@ -1,6 +1,10 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
+const cookieSession = require("cookie-session")
+
+const password = "purple-monkey-dinosaur"; // found in the req.params object
+const hashedPassword = bcrypt.hashSync(password, 10);
 const { emailLookup, getCurrentUser, urlsForUser } = require('./helpers/helpers');
 
 const app = express();
@@ -9,7 +13,10 @@ const PORT = 8080; // default port 8080
 //using ejs template
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'cookiemonster',
+  keys: ['my secret key', 'yet another secret key']
+}));
 
 
 const generateRandomString = function() {
@@ -56,21 +63,27 @@ app.get("/register", (req, res) => {
 
 //register and add a new user to global users object
 app.post("/register", (req, res) => {
-  const { email, password} = req.body;
+  const { email, password } = req.body;
 
   if (email === "" || password === "") {
     res.status(400).send();
     return;
   }
+
   if (emailLookup(email, users)) {
     res.status(400).send();
     return;
   }
 
+  //hash password
+  const salt = bcrypt.genSaltSync(10)
+  const hash = bcrypt.hashSync(password, salt);
+
   const id = generateRandomString();
-  const newUser = {id, email, password};
+  const newUser = { id, email, password: hash };
+
   users[id] = newUser;
-  res.cookie("user_id", id);
+  req.session.user = id;
 
   return res.redirect("/urls");
  });
@@ -78,8 +91,10 @@ app.post("/register", (req, res) => {
 //login
 app.get("/login", (req, res) => {
   const templateVars = {
-    user: getCurrentUser(req, users) || {}
+    user: getCurrentUser(req, users) || {},
+    error: false
   };
+
   return res.render("login", templateVars);
 });
 
@@ -88,25 +103,22 @@ app.post("/login", (req, res) => {
   const { email, password } = req.body;
   const user = emailLookup(email, users);
   if (!user) {
-    return res
-      .status(403)
-      .render("register", { user: {} });
+    return res.status(403).render("register", { user: {} });
   }
 
-  if (user.password !== password) {
-    return res
-      .status(403)
-      .render("login", { user: {} });
+  //hash password and check if the password matches
+  if (bcrypt.compareSync(password, user.password)) {
+    req.session.user = user.id;
+    res.redirect('/urls');
+  } else {
+    res.status(403).render("login", { user: {}, error: true });
   }
-
-  res.cookie("user_id", user.id);
-  res.redirect('/urls');
 });
 
 //clear cookies and log out
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
-  res.redirect('/urls');
+  req.session = null;
+  res.redirect('/login');
 });
 
 //login prompt
@@ -164,7 +176,7 @@ app.post("/urls", (req, res) => {
     longURL,
     userId: user.id
   };
-  res.redirect(`/urls/${shortURL}`);
+  res.redirect(`/urls`);
 });
 
 //redirect to the long URL if a short one is not found, if user is not logged in, redirect to login

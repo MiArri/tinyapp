@@ -25,6 +25,11 @@
         </p>
         <p><input type="password" name="password" placeholder="Password">
         </p>
+
+        <% if (error) { %>
+          <p>Invalid username or password</p>
+        <% } %>
+
         <p><button type="submit" class="btn btn-primary">Login</button>
         </p>
       </form>

@@ -4,7 +4,7 @@ const emailLookup = function (email, users) {
 };
 
 const getCurrentUser = (req, users) => {
-  const userId = req.cookies["user_id"];
+  const userId = req.session.user;
   if (users[userId]) {
     return users[userId];
   }
