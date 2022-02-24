@@ -3,4 +3,25 @@ const emailLookup = function (email, users) {
     .find(x => x.email === email)
 };
 
-module.exports = { emailLookup };
+const getCurrentUser = (req, users) => {
+  const userId = req.cookies["user_id"];
+  if (users[userId]) {
+    return users[userId];
+  }
+
+  return null;
+};
+
+const urlsForUser = function (urls, userId) {
+  const userURLs = {};
+  for (const shortURL in urls) {
+    const url = urls[shortURL];
+    if (url.userId === userId) {
+      userURLs[shortURL] = url;
+    }
+  }
+
+  return userURLs;
+};
+
+module.exports = { emailLookup, getCurrentUser, urlsForUser };

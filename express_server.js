@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
-const { emailLookup } = require('./helpers/helpers');
+const { emailLookup, getCurrentUser, urlsForUser } = require('./helpers/helpers');
 
 const app = express();
 const PORT = 8080; // default port 8080
@@ -45,29 +45,10 @@ const users = {
   }
 };
 
-const getCurrentUser = (req) => {
-  const userId = req.cookies["user_id"];
-  if (users[userId]) {
-    return users[userId];
-  }
-
-  return {};
-};
-
-const urlsForUser = function (urlDatabase, req) {
-  const userIDs = urlDatabase[shortURL].userID;
-    for (const userID of userIDs){
-      if (userID !== getCurrentUser (req)){
-        return false;
-      }
-    }
-  return true;
-};
-
 //register
 app.get("/register", (req, res) => {
   const templateVars = {
-    user: getCurrentUser(req)
+    user: getCurrentUser(req, users) || {}
   };
 
   return res.render("register", templateVars);
@@ -97,7 +78,7 @@ app.post("/register", (req, res) => {
 //login
 app.get("/login", (req, res) => {
   const templateVars = {
-    user: getCurrentUser(req)
+    user: getCurrentUser(req, users) || {}
   };
   return res.render("login", templateVars);
 });
@@ -128,6 +109,10 @@ app.post("/logout", (req, res) => {
   res.redirect('/urls');
 });
 
+//login prompt
+app.get("/login_prompt", (req, res) => {
+  return res.render("login_prompt");
+});
 
 //home page
 app.get("/", (req, res) => {
@@ -142,87 +127,110 @@ app.get("/urls.json", (req, res) => {
 
 //new route handler for "/urls"
 app.get("/urls", (req, res) => {
+  const user = getCurrentUser(req, users);
+  if (!user) {
+    return res.redirect('/login_prompt');
+  }
+
   const templateVars = {
-    urls: urlDatabase,
-    user: getCurrentUser(req)
+    urls: urlsForUser(urlDatabase, user.id),
+    user
   };
   res.render("urls_index", templateVars);
 });
 
 //get a new URL
 app.get("/urls/new", (req, res) => {
-  const templateVars = {
-    user: getCurrentUser(req)
-  };
-  if (!templateVars.user) {
-    res.redirect('/login');
-    return
+  const user = getCurrentUser(req, users);
+  if (!user) {
+    return res.redirect('/login_prompt');
   }
-  res.render("urls_new", templateVars);
+
+  res.render("urls_new", { user });
 });
+
+
 
 //generate a short URL
 app.post("/urls", (req, res) => {
-  const { email, password } = req.body;
-  const user = emailLookup(email, users);
-  if (!urlsForUser(user)) {
-    return res.redirect('/register');
-  } else {
-    const longUrl = req.body.longURL;
-    const shortURL = generateRandomString();
-    urlDatabase[shortURL] = longUrl;
-    res.redirect(`/urls/${shortURL}`);
+  const user = getCurrentUser(req, users);
+  if (!user) {
+    return res.redirect('/login_prompt');
   }
+
+  const longURL = req.body.longURL;
+  const shortURL = generateRandomString();
+  urlDatabase[shortURL] = {
+    longURL,
+    userId: user.id
+  };
+  res.redirect(`/urls/${shortURL}`);
 });
 
 //redirect to the long URL if a short one is not found, if user is not logged in, redirect to login
 app.get("/u/:shortURL", (req, res) => {
-  const { email, password } = req.body;
-  const user = emailLookup(email, users);
-  const shortURL = req.params.shortURL;
+  const user = getCurrentUser(req, users);
+  if (!user) {
+    return res.redirect('/login_prompt');
+  }
 
-  if (!urlsForUser(user)) {
-    return res.redirect('/register');
+  const shortURL = req.params.shortURL;
+  const url = urlDatabase[shortURL];
+  if (!url) {
+    return res.render("not_found", { shortURL, user });
   }
+
   //if the URL with the matching :id does not belong to them
-  if (urlDatabase[shortURL] !== urlDatabase[shortURL].userID) {
-    return "This URL doesn't belong to you"
+  if (url.userId !== user.id) {
+    return res.redirect('/url_doesnt_belong');
   }
-  if (!urlDatabase[shortURL]) {
-    res.render("not_found", {
-      shortURL,
-      user: getCurrentUser(req)
-    });
-  } else {
-    res.redirect(urlDatabase[shortURL].longURL);
-  }
+
+  res.redirect(url.longURL);
 });
 
 //route to render urls_show.ejs template
 app.get("/urls/:shortURL", (req, res) => {
-  const shortURL = req.params.shortURL;
-  const user = getCurrentUser(req);
-
-  if (!urlDatabase[shortURL]) {
-    res.render("not_found", { shortURL, user });
-  } else {
-    const longURL = urlDatabase[shortURL].longURL;
-    res.render("urls_show", { shortURL, longURL, user });
+  const user = getCurrentUser(req, users);
+  if (!user) {
+    return res.redirect('/login_prompt');
   }
+
+  const shortURL = req.params.shortURL;
+  if (!urlDatabase[shortURL]) {
+    return res.render("not_found", { shortURL, user });
+  }
+
+  const longURL = urlDatabase[shortURL].longURL;
+  res.render("urls_show", { shortURL, longURL, user });
 });
+
 
 //Delete a URL
 app.post("/urls/:shortURL/delete", (req, res) => {
+  const user = getCurrentUser(req, users);
+  if (!user) {
+    return res.redirect('/login_prompt');
+  }
+
   const shortURL = req.params.shortURL;
-  delete urlDatabase[shortURL].longURL;
+  delete urlDatabase[shortURL];
   res.redirect("/urls");
 });
 
-//update the shortened url
-app.post("/urls/:id", (req, res) => {
-  const URLId = req.params.id;
+//update or edit the short url
+app.post("/urls/:shortURL", (req, res) => {
+  const user = getCurrentUser(req, users);
+  if (!user) {
+    return res.redirect('/login_prompt');
+  }
+
+  const shortURL = req.params.id;
+  if (!urlDatabase[shortURL]) {
+    res.render("not_found", { shortURL, user });
+  }
+
   const newURL = req.body.newURL;
-  urlDatabase[URLId] = newURL;
+  urlDatabase[shortURL].longURL = newURL;
   res.redirect("/urls");
 });
 
