@@ -5,14 +5,12 @@ const { emailLookup } = require('./helpers/helpers');
 
 const app = express();
 const PORT = 8080; // default port 8080
+
 //using ejs template
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
-// app.use(cookieSession({
-//   name: 'session',
-//   keys: ['user_id']
-// }));
+
 
 const generateRandomString = function() {
   let result = '';
@@ -54,16 +52,16 @@ const getCurrentUser = (req) => {
   }
 
   return {};
-}
+};
 
-const urlsForUser = function (id,req) {
-  const userId = req.cookies["user_id"];
-  const user = users[shortURL]
-  if ( !== getCurrentUser (req)){
-    return res.redirect('/register');
-  } else {
-    return res.redirect('/urls');
-  }
+const urlsForUser = function (urlDatabase, req) {
+  const userIDs = urlDatabase[shortURL].userID;
+    for (const userID of userIDs){
+      if (userID !== getCurrentUser (req)){
+        return false;
+      }
+    }
+  return true;
 };
 
 //register
@@ -75,7 +73,7 @@ app.get("/register", (req, res) => {
   return res.render("register", templateVars);
 });
 
-//reister and add a new user to global users object
+//register and add a new user to global users object
 app.post("/register", (req, res) => {
   const { email, password} = req.body;
 
@@ -167,25 +165,29 @@ app.get("/urls/new", (req, res) => {
 app.post("/urls", (req, res) => {
   const { email, password } = req.body;
   const user = emailLookup(email, users);
-  urlsForUser(user);
-  if (!user) {
-    res.redirect('/login');
-    return res.status(403);
-  } else if (user !== getCurrentUser(req)){
-    res.redirect('/login');
-    return res.status(403);
+  if (!urlsForUser(user)) {
+    return res.redirect('/register');
   } else {
-    const longUrl = req.body.longURL
+    const longUrl = req.body.longURL;
     const shortURL = generateRandomString();
     urlDatabase[shortURL] = longUrl;
     res.redirect(`/urls/${shortURL}`);
   }
 });
 
-//redirect to the long URL if a short one is not found
+//redirect to the long URL if a short one is not found, if user is not logged in, redirect to login
 app.get("/u/:shortURL", (req, res) => {
+  const { email, password } = req.body;
+  const user = emailLookup(email, users);
   const shortURL = req.params.shortURL;
 
+  if (!urlsForUser(user)) {
+    return res.redirect('/register');
+  }
+  //if the URL with the matching :id does not belong to them
+  if (urlDatabase[shortURL] !== urlDatabase[shortURL].userID) {
+    return "This URL doesn't belong to you"
+  }
   if (!urlDatabase[shortURL]) {
     res.render("not_found", {
       shortURL,
