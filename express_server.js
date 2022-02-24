@@ -34,44 +34,43 @@ const users = {
     email: "user2@example.com",
     password: "dishwasher-funk"
   }
-}
-
-const userDatabase = {
-  "mi@gmail.com": user1,
 };
 
 //register
 app.get("/register", (req, res) => {
-  // let email = userDatabase[req.cookie.email];
-  return res.render("register");
+  const templateVars = {
+    user: {}
+  };
+
+  return res.render("register", templateVars);
 });
+
+//add a new user to global users object
  app.post("/register", (req, res) => {
-  const {email, password} = req.body;
-  if (!email || !password){
+  const { email, password} = req.body;
+  const id = generateRandomString();
+  if (!email || !password) {
     return res.redirect("/register")
-  }
-  if (userDatabase[email]){
+  };
+  if (Object.values(users).find(x => x.email === email)) {
     return res.redirect("/register")
-  }
-  const newUser = {email, password};
-  userDatabase [email] = newUser;
-  res.cookie("email", email);
-  return res.redirect("/");
+  };
+  const newUser = {id, email, password};
+  users[id] = newUser;
+  res.cookie("user_id", id);
+  return res.redirect("/urls");
  });
 
 
 //log in and cookie
 app.post("/login", (req, res) => {
   const username = req.body.username;
-  res.cookie('username', username);
   res.redirect('/urls');
 });
 
 //clear cookies
 app.post("/logout", (req, res) => {
-  const username = req.body.username;
-  res.cookie('username', username);
-  res.clearCookie('username', { path: '/logout' })
+  res.clearCookie('user_id')
   res.redirect('/urls');
 });
 
@@ -89,9 +88,12 @@ app.get("/urls.json", (req, res) => {
 
 //new route handler for "/urls"
 app.get("/urls", (req, res) => {
+  const userId = req.cookies["user_id"];
+  const user = users[userId];
   const templateVars = {
     urls: urlDatabase,
-    username: req.cookies["username"] };
+    user
+  };
   res.render("urls_index", templateVars);
 });
 
