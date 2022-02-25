@@ -166,6 +166,8 @@ app.get("/urls/new", (req, res) => {
 //generate a short URL
 app.post("/urls", (req, res) => {
   const user = getCurrentUser(req, users);
+
+  //if user is not logged in
   if (!user) {
     return res.redirect('/login_prompt');
   }
@@ -176,11 +178,12 @@ app.post("/urls", (req, res) => {
     longURL,
     userId: user.id
   };
-  res.redirect(`/urls`);
+  res.redirect("/urls");
 });
 
-//redirect to the long URL if a short one is not found, if user is not logged in, redirect to login
+//redirect to the long URL if a short one is not found
 app.get("/u/:shortURL", (req, res) => {
+  //if user is not logged in, prompt to login
   const user = getCurrentUser(req, users);
   if (!user) {
     return res.redirect('/login_prompt');
@@ -213,7 +216,7 @@ app.get("/urls/:shortURL", (req, res) => {
   }
 
   const longURL = urlDatabase[shortURL].longURL;
-  res.render("urls_show", { shortURL, longURL, user });
+  return res.render("urls_show", { shortURL, longURL, user });
 });
 
 
