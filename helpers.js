@@ -1,4 +1,4 @@
-const emailLookup = function (email, users) {
+const getUserByEmail = function (email, users) {
   return Object.values(users)
     .find(x => x.email === email)
 };
@@ -24,4 +24,4 @@ const urlsForUser = function (urls, userId) {
   return userURLs;
 };
 
-module.exports = { emailLookup, getCurrentUser, urlsForUser };
+module.exports = { getUserByEmail, getCurrentUser, urlsForUser };

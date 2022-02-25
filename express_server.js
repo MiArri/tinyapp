@@ -1,11 +1,11 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const bcrypt = require('bcryptjs');
+const bcrypt = require("bcryptjs");
 const cookieSession = require("cookie-session")
 
 const password = "purple-monkey-dinosaur"; // found in the req.params object
 const hashedPassword = bcrypt.hashSync(password, 10);
-const { emailLookup, getCurrentUser, urlsForUser } = require('./helpers/helpers');
+const { getUserByEmail, getCurrentUser, urlsForUser } = require("helpers");
 
 const app = express();
 const PORT = 8080; // default port 8080
@@ -70,7 +70,7 @@ app.post("/register", (req, res) => {
     return;
   }
 
-  if (emailLookup(email, users)) {
+  if (getUserByEmail(email, users)) {
     res.status(400).send();
     return;
   }
@@ -94,14 +94,13 @@ app.get("/login", (req, res) => {
     user: getCurrentUser(req, users) || {},
     error: false
   };
-
   return res.render("login", templateVars);
 });
 
-//login and cookie
+//login
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
-  const user = emailLookup(email, users);
+  const user = getUserByEmail(email, users);
   if (!user) {
     return res.status(403).render("register", { user: {} });
   }
@@ -114,6 +113,7 @@ app.post("/login", (req, res) => {
     res.status(403).render("login", { user: {}, error: true });
   }
 });
+
 
 //clear cookies and log out
 app.post("/logout", (req, res) => {
