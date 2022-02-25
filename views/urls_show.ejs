@@ -11,13 +11,14 @@
 <body>
   <%- include('partials/_header', {user}) %>
   <div class="card text-center">
-    <div class="card-header"></div>
+    <div class="card-header">
+    </div>
     <div class="card-body">
       <h5 class="card-title">TinyURL for: <%= longURL %>
       </h5>
       <p class="card-text">Short URL: <a href="/u/<%= shortURL %>">
-          <%= shortURL %>
-        </a></p>
+          <%= shortURL %></a>
+      </p>
     </div>
     <div>
       <h4>Edit</h4>
@@ -28,7 +29,6 @@
       </form>
     </div>
     <div class="card-footer text-muted">
-
     </div>
   </div>
   <!-- Bootstrap JS -->

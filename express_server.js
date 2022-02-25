@@ -1,11 +1,11 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const bcrypt = require("bcryptjs");
-const cookieSession = require("cookie-session")
+const cookieSession = require("cookie-session");
 
 const password = "purple-monkey-dinosaur"; // found in the req.params object
 const hashedPassword = bcrypt.hashSync(password, 10);
-const { getUserByEmail, getCurrentUser, urlsForUser } = require("helpers");
+const { getUserByEmail, getCurrentUser, urlsForUser } = require('./helpers');
 
 const app = express();
 const PORT = 8080; // default port 8080
@@ -22,10 +22,10 @@ app.use(cookieSession({
 const generateRandomString = function() {
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < 6; i++ ) {
+  for (let i = 0; i < 6; i++) {
     result += characters.charAt(Math.floor(Math.random() * 63));
   }
-   return result;
+  return result;
 };
 
 const urlDatabase = {
@@ -45,7 +45,7 @@ const users = {
     email: "user@example.com",
     password: "purple-monkey-dinosaur"
   },
- "user2RandomID": {
+  "user2RandomID": {
     id: "user2RandomID",
     email: "user2@example.com",
     password: "dishwasher-funk"
@@ -66,17 +66,15 @@ app.post("/register", (req, res) => {
   const { email, password } = req.body;
 
   if (email === "" || password === "") {
-    res.status(400).send();
-    return;
+    return res.render('email_is_empty', { user: {} });
   }
 
   if (getUserByEmail(email, users)) {
-    res.status(400).send();
-    return;
+    return res.render('email_exists', { user: {} });
   }
 
   //hash password
-  const salt = bcrypt.genSaltSync(10)
+  const salt = bcrypt.genSaltSync(10);
   const hash = bcrypt.hashSync(password, salt);
 
   const id = generateRandomString();
@@ -86,7 +84,7 @@ app.post("/register", (req, res) => {
   req.session.user = id;
 
   return res.redirect("/urls");
- });
+});
 
 //login
 app.get("/login", (req, res) => {
@@ -141,7 +139,7 @@ app.get("/urls.json", (req, res) => {
 app.get("/urls", (req, res) => {
   const user = getCurrentUser(req, users);
   if (!user) {
-    return res.redirect('/login_prompt');
+    return res.redirect('/login');
   }
 
   const templateVars = {
@@ -155,7 +153,7 @@ app.get("/urls", (req, res) => {
 app.get("/urls/new", (req, res) => {
   const user = getCurrentUser(req, users);
   if (!user) {
-    return res.redirect('/login_prompt');
+    return res.redirect('/login');
   }
 
   res.render("urls_new", { user });
@@ -197,7 +195,7 @@ app.get("/u/:shortURL", (req, res) => {
 
   //if the URL with the matching :id does not belong to them
   if (url.userId !== user.id) {
-    return res.redirect('/url_doesnt_belong');
+    return res.render("url_doesnt_belong", { shortURL, user });
   }
 
   res.redirect(url.longURL);
@@ -211,12 +209,22 @@ app.get("/urls/:shortURL", (req, res) => {
   }
 
   const shortURL = req.params.shortURL;
-  if (!urlDatabase[shortURL]) {
+  const url = urlDatabase[shortURL];
+  if (!url) {
     return res.render("not_found", { shortURL, user });
   }
 
-  const longURL = urlDatabase[shortURL].longURL;
-  return res.render("urls_show", { shortURL, longURL, user });
+  //if the URL with the matching :id does not belong to them
+  if (url.userId !== user.id) {
+    return res.render("url_doesnt_belong", { shortURL, user });
+  }
+
+  const longURL = url.longURL;
+  return res.render("urls_show", {
+    shortURL,
+    longURL,
+    user
+  });
 });
 
 
@@ -228,12 +236,22 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   }
 
   const shortURL = req.params.shortURL;
+  const url = urlDatabase[shortURL];
+  if (!url) {
+    return res.render("not_found", { shortURL, user });
+  }
+
+  //if the URL with the matching :id does not belong to them
+  if (url.userId !== user.id) {
+    return res.render("url_doesnt_belong", { shortURL, user });
+  }
+
   delete urlDatabase[shortURL];
   res.redirect("/urls");
 });
 
 //update or edit the short url
-app.post("/urls/:shortURL", (req, res) => {
+app.post("/urls/:id", (req, res) => {
   const user = getCurrentUser(req, users);
   if (!user) {
     return res.redirect('/login_prompt');
@@ -246,6 +264,7 @@ app.post("/urls/:shortURL", (req, res) => {
 
   const newURL = req.body.newURL;
   urlDatabase[shortURL].longURL = newURL;
+  console.log(newURL);
   res.redirect("/urls");
 });
 

@@ -11,7 +11,6 @@ const getCurrentUser = (req, users) => {
   if (users[userId]) {
     return users[userId];
   }
-
   return null;
 };
 
@@ -24,7 +23,6 @@ const urlsForUser = function (urls, userId) {
       userURLs[shortURL] = url;
     }
   }
-
   return userURLs;
 };
 

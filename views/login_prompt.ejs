@@ -14,9 +14,9 @@
 
 <body>
   <main style="margin: 1em;">
+    <%- include('partials/_header', {user}) %>
     <div>
       <form class="form-inline" action="/login" method="POST">
-
         <h3>Please <a href="/login">Login</a> or <a href="/register">Register</a> first</h3>
       </form>
     </div>

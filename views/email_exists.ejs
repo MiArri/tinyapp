@@ -5,20 +5,26 @@
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
     integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-  <title>URL - TinyApp Example</title>
+  <title>email already exists - TinyApp Example</title>
 </head>
 
 <body>
-  <%- include('partials/_header', {user}) %>
-  <div class="card text-center">
-    <div class="card-header">
-    </div>
-    <div class="card-body">
-      <h5 class="card-title">URL no found <%= shortURL %></h5>
-    </div>
-    <div class="card-footer text-muted">
-    </div>
-  </div>
+  <main style="margin: 1em;">
+
+    <%- include('partials/_header', {user}) %>
+
+      <div class="card text-center">
+        <div class="card-header">
+        </div>
+        <div class="card-body">
+          <h5 class="card-title">This email already exists.
+          </h5>
+        </div>
+        <div class="card-footer text-muted">
+        </div>
+      </div>
+  </main>
+
   <!-- Bootstrap JS -->
   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
     integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
